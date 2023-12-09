@@ -8,13 +8,13 @@ Oracle cloud always FREE plan!!
 1. Create Oracle cloud infrastructure
    1. VPC (10.0.0.0/16)
    2. 2 Subnet
-      1. Servers - 10.0.0.0/24
-      2. Load balancer - 10.0.1.0/24
+      1. Subnet A (Servers - 10.0.0.0/24)
+      2. Subnet B (Load balancer - 10.0.1.0/24)
    3. Security lists
-      1. Servers subnet
+      1. Subnet A
          1. Allow ingress from Load Balancer subnet (10.0.1.0/24)
          2. Allow egress to 0.0.0.0/0
-      2. Load balancer subnet
+      2. Subnet B
          1. Allow ingress from 0.0.0.0/0 to HTTPS (443)
          2. Allow ingress from 0.0.0.0/0 to NodePort (25000-35000)
          3. Allow ingress from 0.0.0.0/0 to Kubernetes API Server (6443)
