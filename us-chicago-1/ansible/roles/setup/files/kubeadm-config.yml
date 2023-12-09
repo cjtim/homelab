@@ -1,0 +1,32 @@
+apiVersion: kubeadm.k8s.io/v1beta3
+kind: ClusterConfiguration
+
+kubernetesVersion: v1.28.0
+clusterName: "us-k8s"
+controlPlaneEndpoint: "10.0.0.101:6443"
+
+apiServer:
+  extraArgs:
+    oidc-issuer-url: https://.us.auth0.com/
+    oidc-client-id: 
+    oidc-username-claim: email
+    oidc-groups-claim: k8s-roles
+    oidc-groups-prefix: "oidc:"
+    service-node-port-range: 25000-35000
+  certSANs:
+    - "10.0.0.101"
+
+# controllerManager:
+#   extraArgs:
+#     feature-gates: RotateKubeletServerCertificate=true
+---
+# apiVersion: kubeadm.k8s.io/v1beta3
+# kind: InitConfiguration
+# nodeRegistration:
+#   kubeletExtraArgs:
+#     volume-plugin-dir: /usr/libexec/kubernetes/kubelet-plugins/volume/exec # rook-ceph
+    # feature-gates: RotateKubeletServerCertificate=true
+# ---
+apiVersion: kubelet.config.k8s.io/v1beta1
+kind: KubeletConfiguration
+cgroupDriver: systemd

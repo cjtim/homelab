@@ -1,0 +1,100 @@
+---
+- name: Update apt repositories
+  apt:
+    update_cache: yes
+
+- name: Install required packages
+  apt:
+    name: "{{ item }}"
+    state: present
+  loop:
+    - apt-transport-https
+    - ca-certificates
+    - curl
+    - gpg
+
+- name: Download GPG key
+  get_url:
+    url: "https://pkgs.k8s.io/core:/stable:/v1.28/deb/Release.key"
+    dest: "/tmp/kubernetes-apt-keyring.gpg"
+
+- name: Download GPG key
+  ansible.builtin.apt_key:
+    file: /tmp/kubernetes-apt-keyring.gpg
+    keyring: /etc/apt/trusted.gpg.d/debian.gpg
+
+- name: Add Kubernetes apt repository
+  apt_repository:
+    repo: "deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v1.28/deb/ /"
+    state: present
+
+- name: Update apt repositories after adding Kubernetes repository
+  apt:
+    update_cache: yes
+
+- name: Install Kubernetes tools and mark
+  apt:
+    name: "{{ item }}"
+    state: present
+    allow_change_held_packages: true
+  loop:
+    - kubelet
+    - kubeadm
+    - kubectl
+
+
+- name: Download and extract containerd
+  shell: "curl -fsSL https://github.com/containerd/containerd/releases/download/v1.7.9/containerd-1.7.9-linux-arm64.tar.gz | tar Cxzvf /usr/local -"
+
+- name: Download containerd.service
+  get_url:
+    url: "https://raw.githubusercontent.com/containerd/containerd/main/containerd.service"
+    dest: "/etc/systemd/system/containerd.service"
+
+
+- name: Create containerd folder
+  file:
+    path: /etc/containerd
+    state: directory
+    owner: root
+    group: root
+
+- name: copy containerd config
+  copy:
+    src: config.toml
+    dest: /etc/containerd/config.toml
+  notify:
+    - Restart containerd
+
+- name: Reload systemd and enable containerd service
+  systemd:
+    name: containerd
+    state: started
+    enabled: yes
+    daemon_reload: yes
+
+- name: Download and install runc
+  shell: "curl -fsSL https://github.com/opencontainers/runc/releases/download/v1.1.10/runc.arm64 -o /usr/local/sbin/runc && chmod 755 /usr/local/sbin/runc"
+
+- name: Download and extract CNI plugins
+  shell: "curl -fsSL https://github.com/containernetworking/plugins/releases/download/v1.3.0/cni-plugins-linux-arm64-v1.3.0.tgz | tar Cxzvf /opt/cni/bin -"
+
+- name: copy kubeadm config
+  copy:
+    src: "{{ item.src }}"
+    dest: "{{ item.dest }}"
+  with_items: 
+    - {dest: "/home/ubuntu/kubeadm-config.yml", src: "kubeadm-config.yml"}
+    - {dest: "/etc/modules-load.d/k8s.conf", src: "module.conf"}
+    - {dest: "/etc/sysctl.d/k8s.conf", src: "sysctl.conf"}
+
+- name: Add the {{ item }} module
+  modprobe:
+    name: "{{ item }}"
+    state: present
+  with_items:
+    - overlay
+    - br_netfilter
+
+- name: reload sysctl
+  shell: "sysctl --system"

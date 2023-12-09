@@ -1,0 +1,4 @@
+#cloud-config
+bootcmd:
+- [ cloud-init-per, once, move-second-header, sgdisk, --move-second-header, /dev/sda ]
+- [ cloud-init-per, once, create-ceph-part, parted, --script, /dev/sda, 'mkpart 2 50GB -1' ]
